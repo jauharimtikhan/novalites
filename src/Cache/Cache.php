@@ -26,7 +26,7 @@ class Cache
 
     protected static function resolveDriver(): CacheDriverInterface
     {
-        $config = require __DIR__ . '/../config/cache.php';
+        $config = require constant('BASE_PATH') . '/config/cache.php';
         $default = $config['default'];
 
         return match ($default) {
