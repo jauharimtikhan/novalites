@@ -780,12 +780,24 @@ class Console
     protected function clearSpecificDriver(string $driver): void
     {
         match ($driver) {
-            'database' => \Illuminate\Database\Capsule\Manager::table('cache')->truncate(),
+            'database' => $this->isDatabaseCacheExists(),
             'redis'    => (new \Novalites\Cache\RedisCacheDriver(
                 (require constant('BASE_PATH') . '/config/cache.php')['drivers']['redis']
             ))->flush(),
             default    => throw new \InvalidArgumentException("Driver '{$driver}' ga dikenali."),
         };
+    }
+
+    protected function isDatabaseCacheExists()
+    {
+        $hasTable = \Illuminate\Database\Capsule\Manager::schema()->hasTable('cache');
+
+        if (!$hasTable) {
+            $this->info("Table cache belum ada!");
+            return;
+        }
+        \Illuminate\Database\Capsule\Manager::table('cache')->truncate();
+        $this->info("Berhasil membersihkan cache database");
     }
 
     // ---------- view:clear ----------
