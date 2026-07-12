@@ -135,7 +135,7 @@ class Console
     public function help(): void
     {
         $this->line();
-        $this->info('Novalites REST API — CLI Tool');
+        $this->info('Jtech Nova Framework — CLI Tool');
         $this->line('Penggunaan:');
         $this->line('  php jtech <command> [options]');
         $this->line();
