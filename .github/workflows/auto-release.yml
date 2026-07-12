@@ -1,0 +1,42 @@
+name: Auto Release & Update Packagist
+
+on:
+  push:
+    branches:
+      - main # Sesuaikan dengan nama branch utama kamu
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+
+    # Permission ini WAJIB ada agar GitHub Actions bisa membuat tag dan release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+
+      - name: Create a GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+          generate_release_notes: true
+
+      # Langkah baru untuk trigger Packagist
+      - name: Trigger Packagist Update
+        run: |
+          curl -X POST "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
+          -H "Content-Type: application/json" \
+          -d '{"repository": {"url": "https://github.com/${{ github.repository }}"}}'

@@ -1,0 +1,181 @@
+<?php
+
+namespace Novalites\Application;
+
+use App\Models\User;
+use Carbon\Carbon;
+use Closure;
+use Dotenv\Dotenv;
+use Illuminate\Pagination\Paginator;
+use Novalites\Auth\Auth;
+use Novalites\Container\Container;
+use Novalites\Database\Manager;
+use Novalites\Exception\Handler;
+use Novalites\Middleware\Middleware as MiddlewareKernel;
+use Novalites\Http\Request;
+use Novalites\Logging\Logger;
+use Novalites\Middleware\Middlewares\ValidateCsrfToken;
+use Novalites\Queue\QueueManager;
+use Novalites\Router\Route;
+use Novalites\Session\Session;
+use Novalites\Support\Str;
+use Novalites\Templating\TemplateEngine;
+use Novalites\Validation\ValidationFactory;
+
+
+class Application
+{
+    protected array $webRoutes = [];
+    protected array $apiRoutes = [];
+    protected array $routeFiles = [];
+
+    protected MiddlewareKernel $middlewareKernel;
+
+    protected function __construct()
+    {
+        $this->middlewareKernel = new MiddlewareKernel();
+    }
+
+    public static function boot(string $basePath): static
+    {
+        define('BASE_PATH', $basePath);
+        Handler::register();
+        Logger::setPath($basePath . "/storage/logs");
+        try {
+            Dotenv::createImmutable($basePath)->load();
+        } catch (\Dotenv\Exception\InvalidFileException $e) {
+            // Tangkep khusus biar pesannya lebih jelas & actionable buat developer
+            throw new \RuntimeException(
+                'File .env gagal di-parse: ' . $e->getMessage() . '. Cek syntax .env kamu (value yang ada spasi wajib pakai tanda kutip).',
+                0,
+                $e
+            );
+        }
+        Carbon::setLocale(jtech_env('APP_LOCALE'));
+
+        return new static();
+    }
+
+    public function withRouting(?string $web = null, ?string $api = null): static
+    {
+        if ($web !== null && !in_array($web, $this->webRoutes, true)) {
+            $this->webRoutes[] = $web;
+        }
+
+        if ($api !== null && !in_array($api, $this->apiRoutes, true)) {
+            $this->apiRoutes[] = $api;
+
+            Route::prefix('api')->group(function () use ($api) {
+                if (file_exists($api)) {
+                    require_once $api;
+                }
+            });
+        }
+
+        $this->routeFiles = [...$this->webRoutes];
+
+        return $this;
+    }
+
+    /**
+     * Konfigurasi middleware, mirip Laravel 11 bootstrap/app.php.
+     *
+     * Contoh pemakaian:
+     *
+     * $app->withMiddleware(function (MiddlewareKernel $middleware) {
+     *     $middleware->append(TrimStrings::class);
+     *
+     *     $middleware->alias([
+     *         'auth'     => AuthMiddleware::class,
+     *         'throttle' => ThrottleMiddleware::class,
+     *     ]);
+     *
+     *     $middleware->group('api', ['throttle']);
+     * });
+     */
+    public function withMiddleware(Closure $callback): static
+    {
+        $callback($this->middlewareKernel);
+        return $this;
+    }
+
+    public function run(): void
+    {
+        $container = Container::getInstance();
+        $container->instance(MiddlewareKernel::class, $this->middlewareKernel);
+
+
+
+        $request = new Request();
+        $container->instance(Request::class, $request);
+
+        $container->singleton(Manager::class);
+        $container->singleton(QueueManager::class, fn() => QueueManager::getInstance());
+        Manager::init();
+
+        $this->bootPagination();
+        ValidationFactory::getInstance(jtech_env('APP_LOCALE', 'en'));
+
+        Session::driver();
+
+        $this->middlewareKernel->append([
+            ValidateCsrfToken::class
+        ]);
+
+        // Daftarin model User buat Auth
+        Auth::useModel(User::class);
+        Session::put('_csrf_token', Str::random(24));
+        TemplateEngine::setViewsPath(BASE_PATH . '/resources/views');
+        TemplateEngine::setCachePath(BASE_PATH . '/storage/framework/views');
+        TemplateEngine::share('appName', 'Novalites Nova');
+
+        register_shutdown_function(fn() => Session::commit());
+        $this->loadRoutes();
+
+        $result = Route::dispatch($request, $container);
+        Route::sendResponse($result);
+        Session::commit();
+    }
+
+    protected function loadRoutes(): void
+    {
+        $files = empty($this->routeFiles) ? ['web'] : $this->routeFiles;
+        $basePath = \defined('BASE_PATH') ? constant('BASE_PATH') : dirname(__DIR__);
+
+        require_once __DIR__ . '/../Support/default_route.php';
+
+        foreach ($files as $file) {
+            if (file_exists($file)) {
+                require_once $file;
+            }
+        }
+    }
+
+    protected function bootPagination(): void
+    {
+        Paginator::currentPageResolver(function ($pageName = 'page') {
+            $page = request()->query($pageName) ?? 1;
+            return (int) $page > 0 ? (int) $page : 1;
+        });
+
+        Paginator::currentPathResolver(function () {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = request()->host() ?? 'localhost';
+            $uri = strtok(request()->uri() ?? '/', '?');
+            return "{$scheme}://{$host}{$uri}";
+        });
+
+        Paginator::queryStringResolver(function () {
+            return request()->get();
+        });
+    }
+
+    /**
+     * Sekarang cukup daftarin Handler — semua logic render JSON/HTML
+     * (termasuk deteksi status code dari HttpException) ada di Handler::render().
+     */
+    protected function registerExceptionHandler(): void
+    {
+        Handler::register();
+    }
+}
