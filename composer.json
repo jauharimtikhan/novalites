@@ -17,7 +17,7 @@
             "email": "jauhar.imtikhan@gmail.com"
         }
     ],
-     "require-dev": {
+     "require": {
         "vlucas/phpdotenv": "^5.6",
         "symfony/uid": "^7.4",
         "symfony/var-dumper": "^7.4",
