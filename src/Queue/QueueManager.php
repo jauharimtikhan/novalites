@@ -2,7 +2,7 @@
 
 namespace Novalites\Queue;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Novalites\Database\Manager;
 
 class QueueManager
 {
@@ -35,7 +35,7 @@ class QueueManager
             return;
         }
 
-        Capsule::table('jobs')->insert([
+        Manager::table('jobs')->insert([
             'queue'        => $queue,
             'payload'      => $this->serialize($job),
             'attempts'     => 0,

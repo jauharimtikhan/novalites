@@ -2,11 +2,9 @@
 
 namespace Novalites\Application;
 
-use App\Models\User;
 use Carbon\Carbon;
 use Closure;
 use Dotenv\Dotenv;
-use Illuminate\Pagination\Paginator;
 use Novalites\Auth\Auth;
 use Novalites\Container\Container;
 use Novalites\Database\Manager;
@@ -20,7 +18,6 @@ use Novalites\Router\Route;
 use Novalites\Session\Session;
 use Novalites\Support\Str;
 use Novalites\Templating\TemplateEngine;
-use Novalites\Validation\ValidationFactory;
 
 
 class Application
@@ -113,8 +110,6 @@ class Application
         $container->singleton(QueueManager::class, fn() => QueueManager::getInstance());
         Manager::init();
 
-        $this->bootPagination();
-        ValidationFactory::getInstance(jtech_env('APP_LOCALE', 'en'));
 
         Session::driver();
 
@@ -123,7 +118,7 @@ class Application
         ]);
 
         // Daftarin model User buat Auth
-        Auth::useModel(User::class);
+        Auth::useModel(\App\Models\User::class);
         Session::put('_csrf_token', Str::random(24));
         TemplateEngine::setViewsPath(BASE_PATH . '/resources/views');
         TemplateEngine::setCachePath(BASE_PATH . '/storage/framework/views');
@@ -149,33 +144,5 @@ class Application
                 require_once $file;
             }
         }
-    }
-
-    protected function bootPagination(): void
-    {
-        Paginator::currentPageResolver(function ($pageName = 'page') {
-            $page = request()->query($pageName) ?? 1;
-            return (int) $page > 0 ? (int) $page : 1;
-        });
-
-        Paginator::currentPathResolver(function () {
-            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $host = request()->host() ?? 'localhost';
-            $uri = strtok(request()->uri() ?? '/', '?');
-            return "{$scheme}://{$host}{$uri}";
-        });
-
-        Paginator::queryStringResolver(function () {
-            return request()->get();
-        });
-    }
-
-    /**
-     * Sekarang cukup daftarin Handler — semua logic render JSON/HTML
-     * (termasuk deteksi status code dari HttpException) ada di Handler::render().
-     */
-    protected function registerExceptionHandler(): void
-    {
-        Handler::register();
     }
 }

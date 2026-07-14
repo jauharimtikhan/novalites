@@ -2,7 +2,6 @@
 
 namespace Novalites\Http;
 
-// use Novalites\Concern\UseAuthUserRequest;
 use Novalites\Concern\HasAuthUser;
 use Novalites\FileUploader\UploadedFile;
 

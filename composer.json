@@ -21,12 +21,7 @@
         "vlucas/phpdotenv": "^5.6",
         "symfony/uid": "^7.4",
         "symfony/var-dumper": "^7.4",
-        "illuminate/database": "^13.19",
-        "illuminate/events": "^13.19",
-        "illuminate/pagination": "^13.19",
-        "illuminate/validation": "^13.19",
-        "illuminate/translation": "^13.19",
-        "illuminate/filesystem": "^13.19",
-        "predis/predis": "^3.5"
+        "predis/predis": "^3.5",
+        "nesbot/carbon": "^3.13"
     }
 }

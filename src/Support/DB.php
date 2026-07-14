@@ -2,22 +2,21 @@
 
 namespace Novalites\Support;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
 use Novalites\Database\Manager;
+use Novalites\Database\Schema\Schema;
 
 class DB
 {
-    protected ?Capsule $capsule = null;
+    protected ?Manager $capsule = null;
 
     public function __construct()
     {
-        $this->capsule = Manager::getInstance();
+        $this->capsule = new Manager();
     }
 
     public static function schema()
     {
-        $t = new self;
-        return $t->capsule->schema();
+        return new Schema;
     }
 
     public static function table(string $name)
@@ -29,24 +28,23 @@ class DB
     public static function beginTransaction()
     {
         $t = (new self);
-        return $t->capsule->getDatabaseManager()->beginTransaction();
+        return $t->capsule->beginTransaction();
     }
 
     public static function commit()
     {
         $t = (new self);
-        return $t->capsule->getDatabaseManager()->commit();
+        return $t->capsule->commit();
     }
 
     public static function rollBack()
     {
         $t = (new self);
-        return $t->capsule->getDatabaseManager()->rollBack();
+        return $t->capsule->rollBack();
     }
 
     public static function dropAllTable()
     {
-        $t = (new self);
-        return $t->capsule->schema()->dropAllTables();
+        return Schema::dropAllTables(Manager::getDefaultConnectionName());
     }
 }

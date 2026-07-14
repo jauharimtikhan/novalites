@@ -3,6 +3,7 @@
 namespace Novalites\Console;
 
 use Novalites\Database\Manager;
+use Novalites\Database\Schema\Schema;
 use Novalites\Router\Route;
 use Novalites\Support\DB;
 
@@ -398,7 +399,7 @@ class Console
         Manager::init();
         $this->ensureMigrationsTable();
 
-        $lastBatch = \Illuminate\Database\Capsule\Manager::table('migrations')
+        $lastBatch = Manager::table('migrations')
             ->max('batch');
 
         if (!$lastBatch) {
@@ -406,7 +407,7 @@ class Console
             return;
         }
 
-        $toRollback = \Illuminate\Database\Capsule\Manager::table('migrations')
+        $toRollback = Manager::table('migrations')
             ->where('batch', $lastBatch)
             ->orderBy('id', 'desc')
             ->pluck('migration');
@@ -417,7 +418,7 @@ class Console
             $migration = require constant('BASE_PATH') . "/database/migrations/{$file}";
             $migration->down();
 
-            \Illuminate\Database\Capsule\Manager::table('migrations')
+            Manager::table('migrations')
                 ->where('migration', $file)
                 ->delete();
 
@@ -469,7 +470,7 @@ class Console
         Manager::init();
         $this->ensureMigrationsTable();
 
-        $ran = \Illuminate\Database\Capsule\Manager::table('migrations')
+        $ran = Manager::table('migrations')
             ->pluck('migration')
             ->toArray();
 
@@ -561,7 +562,7 @@ class Console
 
     protected function getPendingMigrations(): array
     {
-        $ran = \Illuminate\Database\Capsule\Manager::table('migrations')
+        $ran = Manager::table('migrations')
             ->pluck('migration')
             ->toArray();
 
@@ -570,9 +571,9 @@ class Console
 
     protected function recordMigration(string $file): void
     {
-        $lastBatch = \Illuminate\Database\Capsule\Manager::table('migrations')->max('batch') ?? 0;
+        $lastBatch = Manager::table('migrations')->max('batch') ?? 0;
 
-        \Illuminate\Database\Capsule\Manager::table('migrations')->insert([
+        Manager::table('migrations')->insert([
             'migration' => $file,
             'batch'     => $lastBatch + 1,
         ]);
@@ -622,7 +623,7 @@ class Console
     {
         Manager::init();
 
-        $failed = \Illuminate\Database\Capsule\Manager::table('failed_jobs')
+        $failed = Manager::table('failed_jobs')
             ->orderBy('failed_at', 'desc')
             ->get();
 
@@ -660,14 +661,14 @@ class Console
             return;
         }
 
-        $failedJob = \Illuminate\Database\Capsule\Manager::table('failed_jobs')->find($id);
+        $failedJob = Manager::table('failed_jobs')->find($id);
 
         if (!$failedJob) {
             $this->error("Failed job #{$id} ga ditemukan.");
             return;
         }
 
-        \Illuminate\Database\Capsule\Manager::table('jobs')->insert([
+        Manager::table('jobs')->insert([
             'queue'        => $failedJob->queue,
             'payload'      => $failedJob->payload,
             'attempts'     => 0,
@@ -676,7 +677,7 @@ class Console
             'created_at'   => time(),
         ]);
 
-        \Illuminate\Database\Capsule\Manager::table('failed_jobs')->where('id', $id)->delete();
+        Manager::table('failed_jobs')->where('id', $id)->delete();
 
         $this->info("Job #{$id} di-requeue.");
     }
@@ -684,8 +685,8 @@ class Console
     public function queueFlush(array $args): void
     {
         Manager::init();
-        $count = \Illuminate\Database\Capsule\Manager::table('failed_jobs')->count();
-        \Illuminate\Database\Capsule\Manager::table('failed_jobs')->truncate();
+        $count = Manager::table('failed_jobs')->count();
+        Manager::table('failed_jobs')->truncate();
         $this->info("{$count} failed job dihapus.");
     }
 
@@ -790,13 +791,13 @@ class Console
 
     protected function isDatabaseCacheExists()
     {
-        $hasTable = \Illuminate\Database\Capsule\Manager::schema()->hasTable('cache');
+        $hasTable = Schema::hasTable('cache');
 
         if (!$hasTable) {
             $this->info("Table cache belum ada!");
             return;
         }
-        \Illuminate\Database\Capsule\Manager::table('cache')->truncate();
+        Manager::table('cache')->truncate();
         $this->info("Berhasil membersihkan cache database");
     }
 
@@ -855,8 +856,8 @@ class Console
         $config = require constant('BASE_PATH') . '/config/session.php';
 
         if ($config['driver'] === 'database') {
-            $count = \Illuminate\Database\Capsule\Manager::table('sessions')->count();
-            \Illuminate\Database\Capsule\Manager::table('sessions')->truncate();
+            $count = Manager::table('sessions')->count();
+            Manager::table('sessions')->truncate();
             $this->info("{$count} session (database) berhasil dihapus.");
             return;
         }

@@ -2,7 +2,7 @@
 
 namespace Novalites\Session;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Novalites\Database\Manager;
 
 class DatabaseSessionHandler implements SessionHandlerContract
 {
@@ -42,7 +42,7 @@ class DatabaseSessionHandler implements SessionHandlerContract
 
     protected function loadFromDatabase(): void
     {
-        $row = Capsule::table('sessions')->where('id', $this->id)->first();
+        $row = Manager::table('sessions')->where('id', $this->id)->first();
 
         $expiredThreshold = time() - ($this->lifetimeMinutes * 60);
 
@@ -104,7 +104,7 @@ class DatabaseSessionHandler implements SessionHandlerContract
 
     public function regenerate(): void
     {
-        Capsule::table('sessions')->where('id', $this->id)->delete();
+        Manager::table('sessions')->where('id', $this->id)->delete();
         $this->id = $this->generateId();
         $this->setCookie();
     }
@@ -119,7 +119,7 @@ class DatabaseSessionHandler implements SessionHandlerContract
      */
     public function save(): void
     {
-        Capsule::table('sessions')->updateOrInsert(
+        Manager::table('sessions')->updateOrInsert(
             ['id' => $this->id],
             [
                 'user_id'       => $this->data['_user_id'] ?? null,
@@ -136,7 +136,7 @@ class DatabaseSessionHandler implements SessionHandlerContract
         // 2% kemungkinan tiap request buat jalanin garbage collection, biar ga berat tiap request
         if (random_int(1, 100) <= 2) {
             $expiredThreshold = time() - ($this->lifetimeMinutes * 60);
-            Capsule::table('sessions')->where('last_activity', '<', $expiredThreshold)->delete();
+            Manager::table('sessions')->where('last_activity', '<', $expiredThreshold)->delete();
         }
     }
 }

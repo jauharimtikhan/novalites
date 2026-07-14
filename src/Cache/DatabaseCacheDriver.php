@@ -2,14 +2,14 @@
 
 namespace Novalites\Cache;
 
-use Illuminate\Database\Capsule\Manager as Capsule;
+use Novalites\Database\Manager;
 use Novalites\Cache\CacheDriverInterface;
 
 class DatabaseCacheDriver implements CacheDriverInterface
 {
     public function get(string $key, mixed $default = null): mixed
     {
-        $row = Capsule::table('cache')->where('key', $key)->first();
+        $row = Manager::table('cache')->where('key', $key)->first();
 
         if ($row === null) {
             return $default;
@@ -28,7 +28,7 @@ class DatabaseCacheDriver implements CacheDriverInterface
     {
         $expiration = $ttl > 0 ? time() + $ttl : 0; // 0 = ga pernah expired
 
-        Capsule::table('cache')->updateOrInsert(
+        Manager::table('cache')->updateOrInsert(
             ['key' => $key],
             [
                 'value'      => $this->serialize($value),
@@ -51,12 +51,12 @@ class DatabaseCacheDriver implements CacheDriverInterface
 
     public function forget(string $key): bool
     {
-        return Capsule::table('cache')->where('key', $key)->delete() > 0;
+        return Manager::table('cache')->where('key', $key)->delete() > 0;
     }
 
     public function flush(): bool
     {
-        Capsule::table('cache')->truncate();
+        Manager::table('cache')->truncate();
         return true;
     }
 
@@ -75,7 +75,7 @@ class DatabaseCacheDriver implements CacheDriverInterface
 
     protected function getRemainingTtl(string $key): int
     {
-        $row = Capsule::table('cache')->where('key', $key)->first();
+        $row = Manager::table('cache')->where('key', $key)->first();
 
         if ($row === null || $row->expiration === 0) {
             return 0;

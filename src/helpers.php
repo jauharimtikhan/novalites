@@ -155,10 +155,10 @@ if (!function_exists('validate_or_fail')) {
      */
     function validate_or_fail(array $data, array $rules, array $messages = [], array $attributes = []): array
     {
-        $validator = \Novalites\Validation\ValidationFactory::make($data, $rules, $messages, $attributes);
+        $validator = \Novalites\Validation\Validator::make($data, $rules, $messages, $attributes);
 
         if ($validator->fails()) {
-            throw new \Novalites\Exception\ValidationException($validator->errors()->toArray());
+            throw new \Novalites\Exception\ValidationException($validator->errors());
         }
 
         return $validator->validated();
@@ -168,21 +168,21 @@ if (!function_exists('validate_or_fail')) {
 if (!function_exists('now')) {
     function now()
     {
-        return Carbon::now(env('APP_TIMEZONE', 'Asia/Jakarta'));
+        return Carbon::now(jtech_env('APP_TIMEZONE', 'Asia/Jakarta'));
     }
 }
 
 if (!function_exists('today')) {
     function today()
     {
-        return Carbon::today(env('APP_TIMEZONE', 'Asia/Jakarta'));
+        return Carbon::today(jtech_env('APP_TIMEZONE', 'Asia/Jakarta'));
     }
 }
 
 if (!function_exists('cb_parse')) {
     function cb_parse(string $text)
     {
-        return Carbon::parse($text)->timezone(env('APP_TIMEZONE', 'Asia/Jakarta'));
+        return Carbon::parse($text)->timezone(jtech_env('APP_TIMEZONE', 'Asia/Jakarta'));
     }
 }
 
