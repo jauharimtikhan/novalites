@@ -343,6 +343,16 @@ if (!function_exists('jtech_env')) {
     }
 }
 
+if (!function_exists('env')) {
+    function env(string $key, ?string $default = null)
+    {
+        if (array_key_exists($key, $_ENV)) {
+            return $_ENV[$key];
+        }
+        return $default;
+    }
+}
+
 
 if (!function_exists('csrf_token')) {
     function csrf_token()
